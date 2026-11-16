@@ -47,8 +47,8 @@ Specific objectives:
 | FR03 | Each animal receives a unique identification number.         |
 | FR04 | Farmers can view individual animal health histories.         |
 | FR05 | Farmers can search for veterinarians by location of the clinic.            |
-| FR06 | Farmers can request and schedule veterinary services.        |
-| FR07 | Veterinarians can accept or reject service requests.         |
+| FR06 | Farmers can request and schedule appointments.               |
+| FR07 | Veterinarians can accept or reject appointments.             |
 | FR08 | Veterinarians can record diagnoses and treatments.           |
 | FR09 | Veterinarians can register vaccinations and follow-up dates. |
 | FR10 | Farmers can report suspected livestock diseases.             |
