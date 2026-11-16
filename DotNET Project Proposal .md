@@ -96,8 +96,6 @@ The system will use a relational database implemented in Microsoft SQL Server.
 | Table          | Important attributes                                                     |
 | -------------- | ------------------------------------------------------------------------ |
 | Users          | UserID, FullName, Email, Phone, PasswordHash, Role                       |
-| Farmers        | FarmerID, UserID                                                         |
-| Veterinarians  | VeterinarianID, UserID, LicenseNumber, VerificationStatus                |
 | Clinics        | ClinicID, ClinicName, Address                                            |
 | Farms          | FarmID, FarmerID, FarmName, District, Sector, Cell, Village              |
 | Animals        | AnimalID, FarmID, Specie, TagNumber, Breed, Sex, DateOfBirth             |
