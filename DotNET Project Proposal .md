@@ -46,7 +46,7 @@ Specific objectives:
 | FR02 | Farmers can register farms and livestock.                    |
 | FR03 | Each animal receives a unique identification number.         |
 | FR04 | Farmers can view individual animal health histories.         |
-| FR05 | Farmers can search for veterinarians by location.            |
+| FR05 | Farmers can search for veterinarians by location of the clinic.            |
 | FR06 | Farmers can request and schedule veterinary services.        |
 | FR07 | Veterinarians can accept or reject service requests.         |
 | FR08 | Veterinarians can record diagnoses and treatments.           |
@@ -55,6 +55,7 @@ Specific objectives:
 | FR11 | The system provides appointment and vaccination reminders.   |
 | FR12 | Administrators can manage users and verify veterinarians.    |
 | FR13 | Administrators can generate livestock health reports.        |
+| FR14 | Administrators can modify clinic details.                    | 
 
 ### 4.2 Non-functional requirements
 
