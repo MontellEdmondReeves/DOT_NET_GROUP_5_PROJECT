@@ -100,9 +100,8 @@ The system will use a relational database implemented in Microsoft SQL Server.
 | Farms          | FarmID, FarmerID, FarmName, District, Sector, Cell, Village              |
 | Animals        | AnimalID, FarmID, Specie, TagNumber, Breed, Sex, DateOfBirth             |
 | Appointments   | AppointmentID, AnimalID, VeterinarianID, AppointmentDate, Status         |
-| HealthRecords  | RecordID, AnimalID, VeterinarianID, Diagnosis, Treatment, RecordDate     |
+| HealthRecords  | RecordID, AnimalID, VeterinarianID, Diagnosis, Treatment, RecordDate, ReportedByUserID, CaseStatus, Description     |
 | Vaccinations   | VaccinationID, AnimalID, VaccineName, VaccinationDate, NextDueDate       |
-| DiseaseReports | ReportID, AnimalID, Diagnosis, ReportedByUserID, CaseStatus, Description |
 
 
 ### 6.2 Database relationships
@@ -113,7 +112,7 @@ The system will use a relational database implemented in Microsoft SQL Server.
 - One animal can receive multiple vaccinations.
 - One veterinarian can manage multiple appointments.
 - One animal can have multiple appointments.
-- One disease can appear in multiple disease reports.
+
 
 ### 6.4 Proposed technology stack
 
