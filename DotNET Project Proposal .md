@@ -51,10 +51,11 @@ Specific objectives:
 | FR07 | Veterinarians can accept or reject appointments.             |
 | FR08 | Veterinarians can record diagnoses and treatments.           |
 | FR09 | Veterinarians can register vaccinations and follow-up dates. |
-| FR10 | The system provides appointment and vaccination reminders.   |
-| FR11 | Administrators can manage users and verify veterinarians.    |
-| FR12 | Administrators can generate livestock health reports.        |
-| FR13 | Administrators can modify clinic details.                    | 
+| FR10 | Veterinarians can generate livestock health reports.         |
+| FR11 | The system provides appointment and vaccination reminders.   |
+| FR12 | Administrators can manage users and verify veterinarians.    |
+| FR13 | Administrators can generate livestock health reports.        |
+| FR14 | Administrators can modify clinic details.                    | 
 
 ### 4.2 Non-functional requirements
 
