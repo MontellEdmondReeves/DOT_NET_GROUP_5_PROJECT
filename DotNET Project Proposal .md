@@ -84,7 +84,6 @@ Rwanda-specific considerations:
 
 - Farmer: Registers livestock, manages farm information, requests veterinary services, and views health records.
 - Veterinarian: Manages appointments, diagnoses diseases, records treatments, and tracks vaccinations.
-- Clinic administrator: Coordinates veterinary staff and service appointments.
 - System administrator: Manages accounts, verifies veterinarians, and generates reports.
 
 ## 6. Database design
