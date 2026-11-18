@@ -1,7 +1,7 @@
 # .NET Project Proposal: Livestock Health and Veterinary Service Management System
 
 Project context: Rwanda
-Proposed technology: C#, ASP.NET Core MVC, Entity Framework Core, SQL Server.
+Proposed technology: C#, ASP.NET Core (Razor Pages), Entity Framework Core, SQL Server.
 
 ## 1. Project name
 
@@ -119,11 +119,9 @@ The system will use a relational database implemented in Microsoft SQL Server.
 | Component               | Technology                       |
 | ----------------------- | -------------------------------- |
 | Programming language    | C#                               |
-| Backend framework       | ASP.NET Core MVC                 |
+| Backend framework       | ASP.NET Core (Razor Pages)       |
 | Frontend                | HTML, CSS, JavaScript, Bootstrap |
 | Database                | Microsoft SQL Server             |
-| ORM                     | Entity Framework Core            |
-| Authentication          | ASP.NET Core Identity            |
 | Development environment | Visual Studio                    |
 | Version control         | Git and GitHub                   |
 
@@ -131,9 +129,7 @@ The application will follow a layered architecture consisting of presentation, b
 
 ## 7. Project timeline
 
-Proposed eight-week development schedule:
-
-| Week | Activities                                             |
+| Steps | Activities                                             |
 | ---- | ------------------------------------------------------ |
 | 1    | Requirements analysis and project planning             |
 | 2    | System design, UML diagrams, and database design       |
