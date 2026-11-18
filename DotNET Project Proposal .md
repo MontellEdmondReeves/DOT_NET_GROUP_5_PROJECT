@@ -33,8 +33,7 @@ Specific objectives:
 2. Connect livestock farmers with veterinary professionals.
 3. Facilitate veterinary appointment scheduling and management.
 4. Track animal vaccinations, diagnoses, and treatments.
-5. Enable reporting and monitoring of suspected animal diseases.*
-6. Generate livestock health and veterinary service reports.
+5. Generate livestock health and veterinary service reports.
 
 ## 4. Functional and non-functional requirements
 
