@@ -1,12 +1,191 @@
 ﻿@page
-@model IndexModel
+@model Livestock_Health_App.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Dashboard";
+
+    void StatCard(string label, int value, string color)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center border-@color h-100">
+                <div class="card-body">
+                    <div class="display-6 text-@color">@value</div>
+                    <div class="text-muted">@label</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    string StatusColor(string status) => status switch
+    {
+        "Accepted" => "success",
+        "Pending" => "warning text-dark",
+        _ => "secondary"
+    };
 }
 
-<div class="text-center">
-    <h1 class="display-4">Livestock Health and Veterinary Services </h1>
-    <p>
-        The web application for connecting livestock farmers, veterinarians, and veterinary service providers to improve animal health and deliver veterinary services.
-    </p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Welcome, @Model.FullName</h2>
+        <span class="text-muted">@Model.Role dashboard</span>
+    </div>
 </div>
+
+@if (TempData["SuccessMessage"] is string msg)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @msg
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@* ================= FARMER ================= *@
+@if (Model.Role == "Farmer")
+{
+    <div class="row g-3 mb-4">
+        @{
+            StatCard("My farms", Model.FarmCount, "primary");
+        }
+        @{
+            StatCard("My animals", Model.AnimalCount, "success");
+        }
+        @{
+            StatCard("Upcoming appointments", Model.Appointments.Count, "info");
+        }
+        @{
+            StatCard("Vaccinations due", Model.DueVaccinations.Count, "danger");
+        }
+    </div>
+
+    <div class="mb-4">
+        <a asp-page="/Farms/Index" class="btn btn-outline-primary me-2">Manage farms</a>
+        <a asp-page="/Animals/Index" class="btn btn-outline-success me-2">My animals</a>
+        <a asp-page="/Vets/Index" class="btn btn-primary">Find a veterinarian</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>Upcoming appointments</strong>
+                    <a asp-page="/Appointments/Index" class="small">View all</a>
+                </div>
+                @if (Model.Appointments.Count == 0)
+                {
+                    <div class="card-body text-muted">No upcoming appointments.</div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.Appointments)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div>@a.Species &middot; <strong>@a.TagNumber</strong></div>
+                                    <small class="text-muted">
+                                        @a.Date.ToString("ddd, dd MMM yyyy HH:mm") with @a.PersonName
+                                    </small>
+                                </div>
+                                <span class="badge bg-@StatusColor(a.Status)">@a.Status</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            @await Html.PartialAsync("_VaccinationsDue", Model.DueVaccinations)
+        </div>
+    </div>
+}
+
+@* ================= VETERINARIAN ================= *@
+@if (Model.Role == "Veterinarian")
+{
+    <div class="row g-3 mb-4">
+        @{
+            StatCard("Pending requests", Model.PendingRequests, "warning");
+        }
+        @{
+            StatCard("Today's appointments", Model.Appointments.Count, "primary");
+        }
+        @{
+            StatCard("Follow-ups due", Model.DueVaccinations.Count, "danger");
+        }
+    </div>
+
+    <div class="mb-4">
+        <a asp-page="/Appointments/Index" class="btn btn-primary me-2">View appointment requests</a>
+        <a asp-page="/Animals/Index" class="btn btn-outline-success">Find an animal</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>Today's appointments</strong>
+                    <a asp-page="/Appointments/Index" class="small">View all</a>
+                </div>
+                @if (Model.Appointments.Count == 0)
+                {
+                    <div class="card-body text-muted">No appointments today.</div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.Appointments)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div>@a.Species &middot; <strong>@a.TagNumber</strong></div>
+                                    <small class="text-muted">
+                                        @a.Date.ToString("HH:mm") &middot; Farmer: @a.PersonName
+                                    </small>
+                                </div>
+                                <span class="badge bg-@StatusColor(a.Status)">@a.Status</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            @await Html.PartialAsync("_VaccinationsDue", Model.DueVaccinations)
+        </div>
+    </div>
+}
+
+@* ================= ADMIN ================= *@
+@if (Model.Role == "Admin")
+{
+    <div class="row g-3 mb-4">
+        @{
+            StatCard("Total users", Model.TotalUsers, "primary");
+        }
+        @{
+            StatCard("Farmers", Model.FarmerCount, "success");
+        }
+        @{
+            StatCard("Veterinarians", Model.VetCount, "info");
+        }
+        @{
+            StatCard("Clinics", Model.ClinicCount, "secondary");
+        }
+    </div>
+    <div class="row g-3 mb-4">
+        @{
+            StatCard("Farms", Model.TotalFarms, "warning");
+        }
+        @{
+            StatCard("Animals", Model.TotalAnimals, "danger");
+        }
+    </div>
+
+    <a asp-page="/Admin/Users" class="btn btn-primary me-2">Manage users</a>
+    <a asp-page="/Admin/Clinics" class="btn btn-outline-primary">Manage clinics</a>
+}
