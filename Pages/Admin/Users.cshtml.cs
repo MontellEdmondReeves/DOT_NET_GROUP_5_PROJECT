@@ -86,9 +86,10 @@ namespace Livestock_Health_App.Pages.Admin
                     "UPDATE Users SET is_verified = @V WHERE user_ID = @Id AND role = 'Veterinarian'", conn);
                 cmd.Parameters.AddWithValue("@V", verified);
                 cmd.Parameters.AddWithValue("@Id", id);
-
-                TempData[cmd.ExecuteNonQuery() == 0 ? "ErrorMessage" : "SuccessMessage"] =
-                    cmd.ExecuteNonQuery() == 0 ? "Veterinarian not found." : okMessage;
+                
+                int rows = cmd.ExecuteNonQuery();
+                TempData[rows == 0 ? "ErrorMessage" : "SuccessMessage"] =
+                    rows == 0 ? "Veterinarian not found." : okMessage;
             }
             catch (Exception ex)
             {
