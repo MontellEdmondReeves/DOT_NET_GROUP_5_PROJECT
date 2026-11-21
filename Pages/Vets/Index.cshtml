@@ -1,4 +1,193 @@
 ﻿@page
 @model Livestock_Health_App.Pages.Vets.IndexModel
 @{
+    ViewData["Title"] = "Find a Veterinarian";
+}
+
+<h2 class="mb-3">Find a Veterinarian</h2>
+
+@if (TempData["SuccessMessage"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @ok <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @err <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.AnimalOptions.Count == 0)
+{
+    <div class="alert alert-info">
+        You need to register an animal before you can request an appointment.
+        <a asp-page="/Animals/Index">Go to My Animals</a>
+    </div>
+}
+
+@* ---------- Filter ---------- *@
+<form method="get" id="filterForm" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">District</label>
+        <select name="District" id="districtSelect" class="form-select">
+            <option value="">All districts</option>
+            @foreach (var d in Model.DistrictOptions)
+            {
+                <option value="@d" selected="@(d == Model.District)">@d</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Sector</label>
+        <select name="Sector" class="form-select" disabled="@(string.IsNullOrEmpty(Model.District))">
+            <option value="">All sectors</option>
+            @foreach (var s in Model.SectorOptions)
+            {
+                <option value="@s" selected="@(s == Model.Sector)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto d-flex align-items-end">
+        <button type="submit" class="btn btn-outline-primary me-2">Search</button>
+        <a asp-page="Index" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+@* ---------- Results ---------- *@
+<p class="text-muted">@Model.Vets.Count veterinarian(s) found</p>
+
+@if (Model.Vets.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-muted text-center py-4">
+            No veterinarians found for this location. Try a different district or sector.
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var v in Model.Vets)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title mb-1">@v.FullName</h5>
+                        <div class="text-primary mb-2">@v.ClinicName</div>
+
+                        <div class="small text-muted mb-2">
+                            @v.Village, @v.Cell, @v.Sector, @v.District
+                        </div>
+                        <div class="small">
+                            @if (!string.IsNullOrWhiteSpace(v.Phone))
+                            {
+                                <div>Phone: <a href="tel:@v.Phone">@v.Phone</a></div>
+                            }
+                            <div>Email: <a href="mailto:@v.Email">@v.Email</a></div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        @if (Model.AnimalOptions.Count == 0)
+                        {
+                            <button type="button" class="btn btn-primary w-100" disabled>Request appointment</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-primary w-100 request-btn"
+                                    data-vet-id="@v.VetId" data-vet-name="@v.FullName">
+                                Request appointment
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@* ============ Request appointment modal ============ *@
+<div class="modal fade" id="requestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Request"
+              asp-route-District="@Model.District" asp-route-Sector="@Model.Sector" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request appointment with <span id="vetNameTitle">@Model.SelectedVetName</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Input.VetId" />
+
+                <div class="mb-3">
+                    <label asp-for="Input.AnimalId" class="form-label"></label>
+                    <select asp-for="Input.AnimalId" asp-items="Model.AnimalOptions" class="form-select">
+                        <option value="0">-- Select animal --</option>
+                    </select>
+                    <span asp-validation-for="Input.AnimalId" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.AppointmentDate" class="form-label"></label>
+                    <input asp-for="Input.AppointmentDate" class="form-control" />
+                    <span asp-validation-for="Input.AppointmentDate" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Detail" class="form-label"></label>
+                    <textarea asp-for="Input.Detail" class="form-control" rows="3" maxlength="500"
+                              placeholder="Describe the symptoms or the reason for the visit"></textarea>
+                    <span asp-validation-for="Input.Detail" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Send request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Changing the district reloads the page so the sector list matches it
+        document.getElementById('districtSelect').addEventListener('change', () => {
+            const sector = document.querySelector('#filterForm select[name="Sector"]');
+            sector.disabled = true;      // don't send the old sector
+            document.getElementById('filterForm').submit();
+        });
+
+        const requestModal = new bootstrap.Modal(document.getElementById('requestModal'));
+        const f = {
+            vet: document.getElementById('Input_VetId'),
+            animal: document.getElementById('Input_AnimalId'),
+            date: document.getElementById('Input_AppointmentDate'),
+            detail: document.getElementById('Input_Detail')
+        };
+
+        // earliest selectable time = now, in local time
+        function nowLocal() {
+            const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+            return d.toISOString().slice(0, 16);
+        }
+        f.date.min = nowLocal();
+
+        document.querySelectorAll('.request-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                f.vet.value = btn.dataset.vetId;
+                f.animal.value = 0;
+                f.date.value = '';
+                f.detail.value = '';
+                f.date.min = nowLocal();
+                document.getElementById('vetNameTitle').textContent = btn.dataset.vetName;
+                requestModal.show();
+            });
+        });
+
+        // Reopen the form if the server rejected it
+        @if (Model.ShowModal)
+            {
+                <text>requestModal.show(); </text>
+        }
+    </script>
 }
