@@ -1,4 +1,170 @@
 ﻿@page
+@using Livestock_Health_App.Pages.Appointments
 @model Livestock_Health_App.Pages.Appointments.IndexModel
 @{
+    ViewData["Title"] = Model.IsVet ? "Appointment Requests" : "My Appointments";
+
+    string BadgeClass(string status) => status switch
+    {
+        "Pending" => "bg-warning text-dark",
+        "Accepted" => "bg-success",
+        "Completed" => "bg-primary",
+        "Rejected" => "bg-danger",
+        _ => "bg-secondary"   // Cancelled
+    };
 }
+
+<h2 class="mb-3">@ViewData["Title"]</h2>
+
+@if (TempData["SuccessMessage"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @ok <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @err <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ---------- Status filter ---------- *@
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(Model.StatusFilter == "All" ? "active" : "")"
+           asp-page="Index" asp-route-StatusFilter="All">
+            All <span class="badge bg-light text-dark">@Model.TotalCount</span>
+        </a>
+    </li>
+    @foreach (var s in IndexModel.Statuses)
+    {
+        Model.StatusCounts.TryGetValue(s, out var count);
+        <li class="nav-item">
+            <a class="nav-link @(Model.StatusFilter == s ? "active" : "")"
+               asp-page="Index" asp-route-StatusFilter="@s">
+                @s <span class="badge bg-light text-dark">@count</span>
+            </a>
+        </li>
+    }
+</ul>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date and time</th>
+                    <th>Animal</th>
+                    <th>@(Model.IsVet ? "Farmer" : "Veterinarian")</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Appointments.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            @if (Model.IsFarmer && Model.TotalCount == 0)
+                            {
+                                <span>You have no appointments yet. <a asp-page="/Vets/Index">Find a veterinarian</a> to request one.</span>
+                            }
+                            else
+                            {
+                                <span>No appointments in this category.</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @foreach (var a in Model.Appointments)
+                {
+                    var isPast = a.Date < DateTime.Now;
+                    <tr>
+                        <td class="text-nowrap">
+                            <div>@a.Date.ToString("ddd, dd MMM yyyy")</div>
+                            <small class="text-muted">@a.Date.ToString("HH:mm")</small>
+                        </td>
+                        <td>
+                            <a asp-page="/Animals/Details" asp-route-id="@a.AnimalId"><strong>@a.TagNumber</strong></a>
+                            <div class="small text-muted">@a.Species</div>
+                        </td>
+                        <td>
+                            @if (Model.IsVet)
+                            {
+                                <div>@a.FarmerName</div>
+                                <div class="small text-muted">@a.FarmName, @a.District</div>
+                                @if (!string.IsNullOrWhiteSpace(a.FarmerPhone))
+                                {
+                                    <div class="small"><a href="tel:@a.FarmerPhone">@a.FarmerPhone</a></div>
+                                }
+                            }
+                            else
+                            {
+                                <div>@a.VetName</div>
+                                @if (!string.IsNullOrWhiteSpace(a.ClinicName))
+                                {
+                                    <div class="small text-muted">@a.ClinicName</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(a.VetPhone))
+                                {
+                                    <div class="small"><a href="tel:@a.VetPhone">@a.VetPhone</a></div>
+                                }
+                            }
+                        </td>
+                        <td style="max-width: 280px;">@(string.IsNullOrWhiteSpace(a.Detail) ? "—" : a.Detail)</td>
+                        <td>
+                            <span class="badge @BadgeClass(a.Status)">@a.Status</span>
+                            @if (a.Status == "Pending" && isPast)
+                            {
+                                <div class="small text-danger mt-1">Date passed</div>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            @if (Model.IsFarmer && a.Status == "Pending")
+                            {
+                                <form method="post" asp-page-handler="Cancel" asp-route-id="@a.Id"
+                                      asp-route-StatusFilter="@Model.StatusFilter" class="d-inline"
+                                      onsubmit="return confirm('Cancel this appointment request?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                                </form>
+                            }
+
+                            @if (Model.IsVet && a.Status == "Pending")
+                            {
+                                <form method="post" asp-page-handler="Accept" asp-route-id="@a.Id"
+                                      asp-route-StatusFilter="@Model.StatusFilter" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" disabled="@isPast"
+                                            title="@(isPast ? "The requested date has passed" : "")">
+                                        Accept
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="Reject" asp-route-id="@a.Id"
+                                      asp-route-StatusFilter="@Model.StatusFilter" class="d-inline"
+                                      onsubmit="return confirm('Reject this appointment request?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                </form>
+                            }
+
+                            @if (Model.IsVet && a.Status == "Accepted")
+                            {
+                                <form method="post" asp-page-handler="Complete" asp-route-id="@a.Id"
+                                      asp-route-StatusFilter="@Model.StatusFilter" class="d-inline"
+                                      onsubmit="return confirm('Mark this appointment as completed?');">
+                                    <button type="submit" class="btn btn-sm btn-primary">Mark completed</button>
+                                </form>
+                            }
+
+                            @if (Model.IsVet && (a.Status == "Accepted" || a.Status == "Completed"))
+                            {
+                                <a asp-page="/Animals/Details" asp-route-id="@a.AnimalId"
+                                   class="btn btn-sm btn-outline-secondary">Open animal</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
