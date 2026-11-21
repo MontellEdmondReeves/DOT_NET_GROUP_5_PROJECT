@@ -176,7 +176,11 @@
         @{
             StatCard("Clinics", Model.ClinicCount, "secondary");
         }
+        @{
+            StatCard("Vets awaiting verification", Model.UnverifiedVets, "warning");
+        }
     </div>
+
     <div class="row g-3 mb-4">
         @{
             StatCard("Farms", Model.TotalFarms, "warning");

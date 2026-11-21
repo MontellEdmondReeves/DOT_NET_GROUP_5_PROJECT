@@ -1,4 +1,234 @@
 ﻿@page
 @model Livestock_Health_App.Pages.Admin.ClinicsModel
 @{
+    ViewData["Title"] = "Manage Clinics";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Manage Clinics</h2>
+    <button type="button" class="btn btn-primary" id="addClinicBtn">+ Add clinic</button>
+</div>
+
+@if (TempData["SuccessMessage"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @ok <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @err <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ---------- Search ---------- *@
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <input name="Search" value="@Model.Search" class="form-control"
+               placeholder="Search by clinic name, district or sector" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+        <a asp-page="Clinics" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Clinic name</th>
+                    <th>District</th>
+                    <th>Sector</th>
+                    <th>Cell</th>
+                    <th>Village</th>
+                    <th>Veterinarians</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Clinics.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No clinics found.</td>
+                    </tr>
+                }
+                @foreach (var c in Model.Clinics)
+                {
+                    <tr>
+                        <td><strong>@c.ClinicName</strong></td>
+                        <td>@c.District</td>
+                        <td>@c.Sector</td>
+                        <td>@c.Cell</td>
+                        <td>@c.Village</td>
+                        <td>
+                            @if (c.VetCount == 0)
+                            {
+                                <span class="text-muted">None</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary me-1">@c.VetCount</span>
+                                <small class="text-muted">@c.VetNames</small>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-btn"
+                                    data-id="@c.ClinicId"
+                                    data-name="@c.ClinicName"
+                                    data-district="@c.District"
+                                    data-sector="@c.Sector"
+                                    data-cell="@c.Cell"
+                                    data-village="@c.Village">
+                                Edit
+                            </button>
+
+                            @if (c.VetCount > 0)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                                        title="Move the veterinarians to another clinic first">
+                                    Delete
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                                        data-id="@c.ClinicId" data-name="@c.ClinicName">
+                                    Delete
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ============ Add / Edit modal ============ *@
+<div class="modal fade" id="clinicModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Save" asp-route-Search="@Model.Search" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clinicModalTitle">Add clinic</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Input.ClinicId" />
+
+                <div class="mb-3">
+                    <label asp-for="Input.ClinicName" class="form-label"></label>
+                    <input asp-for="Input.ClinicName" class="form-control" />
+                    <span asp-validation-for="Input.ClinicName" class="text-danger"></span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.District" class="form-label"></label>
+                        <input asp-for="Input.District" class="form-control" />
+                        <span asp-validation-for="Input.District" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.Sector" class="form-label"></label>
+                        <input asp-for="Input.Sector" class="form-control" />
+                        <span asp-validation-for="Input.Sector" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.Cell" class="form-label"></label>
+                        <input asp-for="Input.Cell" class="form-control" />
+                        <span asp-validation-for="Input.Cell" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.Village" class="form-label"></label>
+                        <input asp-for="Input.Village" class="form-control" />
+                        <span asp-validation-for="Input.Village" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ============ Delete confirmation modal ============ *@
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Delete" asp-route-Search="@Model.Search" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete clinic</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="deleteClinicId" />
+                Are you sure you want to delete <strong id="deleteClinicName"></strong>?
+                This cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const clinicModal = new bootstrap.Modal(document.getElementById('clinicModal'));
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        const f = {
+            id: document.getElementById('Input_ClinicId'),
+            name: document.getElementById('Input_ClinicName'),
+            district: document.getElementById('Input_District'),
+            sector: document.getElementById('Input_Sector'),
+            cell: document.getElementById('Input_Cell'),
+            village: document.getElementById('Input_Village')
+        };
+
+        document.getElementById('addClinicBtn').addEventListener('click', () => {
+            Object.values(f).forEach(el => el.value = '');
+            f.id.value = 0;
+            document.getElementById('clinicModalTitle').textContent = 'Add clinic';
+            clinicModal.show();
+        });
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                f.id.value = btn.dataset.id;
+                f.name.value = btn.dataset.name;
+                f.district.value = btn.dataset.district;
+                f.sector.value = btn.dataset.sector;
+                f.cell.value = btn.dataset.cell;
+                f.village.value = btn.dataset.village;
+                document.getElementById('clinicModalTitle').textContent = 'Edit clinic';
+                clinicModal.show();
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('deleteClinicId').value = btn.dataset.id;
+                document.getElementById('deleteClinicName').textContent = btn.dataset.name;
+                deleteModal.show();
+            });
+        });
+
+        // Reopen the form if the server rejected it
+        @if (Model.ShowModal)
+            {
+                <text>
+                    document.getElementById('clinicModalTitle').textContent =
+                f.id.value > 0 ? 'Edit clinic' : 'Add clinic';
+                clinicModal.show();
+            </text>
+        }
+    </script>
 }

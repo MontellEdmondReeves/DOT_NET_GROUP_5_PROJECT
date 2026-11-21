@@ -13,6 +13,7 @@ namespace Livestock_Health_App.Pages
         public string TagNumber { get; set; } = "";
         public string Species { get; set; } = "";
         public string PersonName { get; set; } = ""; // vet name (farmer view) or farmer name (vet view)
+
     }
 
     public class VaccinationRow
@@ -53,6 +54,7 @@ namespace Livestock_Health_App.Pages
         public int ClinicCount { get; set; }
         public int TotalFarms { get; set; }
         public int TotalAnimals { get; set; }
+        public int UnverifiedVets { get; set; }
 
         // Lists (farmer: upcoming appointments; vet: today's appointments)
         public List<AppointmentRow> Appointments { get; set; } = new();
@@ -162,9 +164,11 @@ namespace Livestock_Health_App.Pages
             ClinicCount = Scalar(conn, "SELECT COUNT(*) FROM Clinics");
             TotalFarms = Scalar(conn, "SELECT COUNT(*) FROM Farms");
             TotalAnimals = Scalar(conn, "SELECT COUNT(*) FROM Animals");
+            UnverifiedVets = Scalar(conn, "SELECT COUNT(*) FROM Users WHERE role = 'Veterinarian' AND is_verified = 0");
         }
 
         // ---------- helpers ----------
+        
 
         private static int Scalar(SqlConnection conn, string sql, int userId = 0)
         {
