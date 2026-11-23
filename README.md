@@ -237,7 +237,7 @@ Please follow existing code style and include appropriate tests for new features
 - MUTABONWA SHARON
 - NDAGIJIMANA CEDRIC
 - UWITONZE PACIFIC
-- INDERE Meree
+- INDERE Neree
 
 ---
 
