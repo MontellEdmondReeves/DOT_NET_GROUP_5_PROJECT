@@ -1,4 +1,345 @@
 ﻿@page
+@using Livestock_Health_App.Pages.Vaccinations
 @model Livestock_Health_App.Pages.Vaccinations.IndexModel
 @{
+    ViewData["Title"] = "Vaccinations";
+
+    (string text, string cls) StatusBadge(VaccRow v) => v.Status switch
+    {
+        "overdue" => ("Overdue", "bg-danger"),
+        "soon" => ("Due soon", "bg-warning text-dark"),
+        "ok" => ("Up to date", "bg-success"),
+        "completed" => ("Completed", "bg-secondary"),
+        _ => ("Previous dose", "bg-light text-dark")
+    };
+
+    string DueText(VaccRow v)
+    {
+        if (v.NextDueDate == null || !v.IsLatest) return "";
+        var d = v.DaysUntilDue;
+        if (d < 0) return $"{-d} day{(d == -1 ? "" : "s")} overdue";
+        if (d == 0) return "due today";
+        return $"in {d} day{(d == 1 ? "" : "s")}";
+    }
+
+    void StatCard(string label, int value, string color)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center border-@color h-100">
+                <div class="card-body">
+                    <div class="display-6 text-@color">@value</div>
+                    <div class="text-muted small">@label</div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Vaccinations</h2>
+    @if (Model.IsVet)
+    {
+        <button type="button" class="btn btn-primary" id="addVaccBtn">+ Register vaccination</button>
+    }
+</div>
+
+@if (TempData["SuccessMessage"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @ok <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @err <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ---------- Summary ---------- *@
+<div class="row g-3 mb-4">
+    @{
+        StatCard("Overdue", Model.Counts.GetValueOrDefault("overdue"), "danger");
+    }
+    @{
+        StatCard("Due within 14 days", Model.Counts.GetValueOrDefault("soon"), "warning");
+    }
+    @{
+        StatCard("Up to date", Model.Counts.GetValueOrDefault("ok"), "success");
+    }
+    @{
+        StatCard("Completed", Model.Counts.GetValueOrDefault("completed"), "secondary");
+    }
+</div>
+
+@* ---------- Tabs ---------- *@
+<ul class="nav nav-pills mb-3">
+    @foreach (var (key, label) in IndexModel.TabList)
+    {
+        <li class="nav-item">
+            <a class="nav-link @(Model.Tab == key ? "active" : "")"
+               asp-page="Index" asp-route-Tab="@key"
+               asp-route-Species="@Model.Species" asp-route-Search="@Model.Search">
+                @label <span class="badge bg-light text-dark">@Model.Counts.GetValueOrDefault(key)</span>
+            </a>
+        </li>
+    }
+</ul>
+
+@* ---------- Filters ---------- *@
+<form method="get" class="row g-2 mb-3">
+    <input type="hidden" name="Tab" value="@Model.Tab" />
+    <div class="col-md-3">
+        <select name="Species" class="form-select">
+            <option value="">All species</option>
+            @foreach (var s in IndexModel.SpeciesList)
+            {
+                <option value="@s" selected="@(s == Model.Species)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-5">
+        <input name="Search" value="@Model.Search" class="form-control"
+               placeholder="@(Model.IsVet ? "Tag number or vaccine (type a full tag number to find any animal)" : "Tag number or vaccine")" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+        <a asp-page="Index" asp-route-Tab="@Model.Tab" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Animal</th>
+                    <th>@(Model.IsVet ? "Owner" : "Farm")</th>
+                    <th>Vaccine</th>
+                    <th>Date given</th>
+                    <th>Next due</th>
+                    <th>Status</th>
+                    @if (Model.IsVet)
+                    {
+                        <th class="text-end">Actions</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr>
+                        <td colspan="@(Model.IsVet ? 7 : 6)" class="text-center text-muted py-4">
+                            @if (Model.Tab == "attention")
+                            {
+                                <span>Nothing needs action right now.</span>
+                            }
+                            else
+                            {
+                                <span>No vaccinations found.</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @foreach (var v in Model.Rows)
+                {
+                    var (text, cls) = StatusBadge(v);
+                    <tr>
+                        <td>
+                            <a asp-page="/Animals/Details" asp-route-id="@v.AnimalId" asp-route-tab="vaccinations">
+                                <strong>@v.TagNumber</strong>
+                            </a>
+                            <div class="small text-muted">@v.Species</div>
+                        </td>
+                        <td>@(Model.IsVet ? v.OwnerName : v.FarmName)</td>
+                        <td>@v.VaccineName</td>
+                        <td class="text-nowrap">@v.VaccinationDate.ToString("dd MMM yyyy")</td>
+                        <td class="text-nowrap">
+                            @(v.NextDueDate?.ToString("dd MMM yyyy") ?? "—")
+                            @if (DueText(v) != "")
+                            {
+                                <div class="small @(v.Status == "overdue" ? "text-danger" : "text-muted")">@DueText(v)</div>
+                            }
+                        </td>
+                        <td><span class="badge @cls">@text</span></td>
+                        @if (Model.IsVet)
+                        {
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary edit-btn"
+                                        data-id="@v.Id"
+                                        data-tag="@v.TagNumber"
+                                        data-name="@v.VaccineName"
+                                        data-date="@v.VaccinationDate.ToString("yyyy-MM-dd")"
+                                        data-next="@(v.NextDueDate?.ToString("yyyy-MM-dd"))">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                                        data-id="@v.Id" data-name="@v.VaccineName" data-tag="@v.TagNumber">
+                                    Delete
+                                </button>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.IsFarmer && Model.Counts.GetValueOrDefault("all") == 0 && Model.Counts.GetValueOrDefault("history") == 0
+     && string.IsNullOrEmpty(Model.Search) && string.IsNullOrEmpty(Model.Species))
+{
+    <p class="text-muted mt-3">
+        No vaccinations have been recorded for your animals yet. Your veterinarian registers them
+        after each visit, and they will appear here with their next due dates.
+    </p>
+}
+
+@if (Model.IsVet)
+{
+    @* ============ Register / edit modal ============ *@
+    <div class="modal fade" id="vaccModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" asp-page-handler="Save"
+                  asp-route-Tab="@Model.Tab" asp-route-Species="@Model.Species" asp-route-Search="@Model.Search"
+                  class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="vaccModalTitle">Register vaccination</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Input.VaccinationId" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.TagNumber" class="form-label"></label>
+                        <input asp-for="Input.TagNumber" class="form-control" placeholder="e.g. RW-SUS-001" />
+                        <span asp-validation-for="Input.TagNumber" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.VaccineName" class="form-label"></label>
+                        <input asp-for="Input.VaccineName" class="form-control" list="vaccineList" />
+                        <datalist id="vaccineList">
+                            <option value="Foot and Mouth Disease"></option>
+                            <option value="Lumpy Skin Disease"></option>
+                            <option value="Brucellosis"></option>
+                            <option value="Anthrax"></option>
+                            <option value="Black Quarter"></option>
+                            <option value="Rabies"></option>
+                            <option value="Peste des Petits Ruminants (PPR)"></option>
+                            <option value="Newcastle Disease"></option>
+                            <option value="Gumboro (IBD)"></option>
+                            <option value="Fowl Pox"></option>
+                        </datalist>
+                        <span asp-validation-for="Input.VaccineName" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.VaccinationDate" class="form-label"></label>
+                            <input asp-for="Input.VaccinationDate" class="form-control"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="Input.VaccinationDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.NextDueDate" class="form-label"></label>
+                            <input asp-for="Input.NextDueDate" class="form-control" />
+                            <span asp-validation-for="Input.NextDueDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ============ Delete confirmation modal ============ *@
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" asp-page-handler="Delete"
+                  asp-route-Tab="@Model.Tab" asp-route-Species="@Model.Species" asp-route-Search="@Model.Search"
+                  class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete vaccination</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="deleteVaccId" />
+                    Delete the <strong id="deleteVaccName"></strong> entry for animal
+                    <strong id="deleteVaccTag"></strong>? This cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (Model.IsVet)
+    {
+        <script>
+            const vaccModal = new bootstrap.Modal(document.getElementById('vaccModal'));
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+            const f = {
+                id: document.getElementById('Input_VaccinationId'),
+                tag: document.getElementById('Input_TagNumber'),
+                name: document.getElementById('Input_VaccineName'),
+                date: document.getElementById('Input_VaccinationDate'),
+                next: document.getElementById('Input_NextDueDate')
+            };
+
+            document.getElementById('addVaccBtn').addEventListener('click', () => {
+                f.id.value = 0;
+                f.tag.value = '';
+                f.tag.readOnly = false;
+                f.name.value = '';
+                f.date.value = today;
+                f.next.value = '';
+                document.getElementById('vaccModalTitle').textContent = 'Register vaccination';
+                vaccModal.show();
+            });
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    f.id.value = btn.dataset.id;
+                    f.tag.value = btn.dataset.tag;
+                    f.tag.readOnly = true;          // the animal cannot be changed when editing
+                    f.name.value = btn.dataset.name;
+                    f.date.value = btn.dataset.date;
+                    f.next.value = btn.dataset.next || '';
+                    document.getElementById('vaccModalTitle').textContent = 'Edit vaccination';
+                    vaccModal.show();
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('deleteVaccId').value = btn.dataset.id;
+                    document.getElementById('deleteVaccName').textContent = btn.dataset.name;
+                    document.getElementById('deleteVaccTag').textContent = btn.dataset.tag;
+                    deleteModal.show();
+                });
+            });
+
+            // Reopen the form if the server rejected it
+            @if (Model.ShowModal)
+                {
+                    <text>
+                                    const editing = f.id.value > 0;
+                    f.tag.readOnly = editing;
+                    document.getElementById('vaccModalTitle').textContent =
+                        editing ? 'Edit vaccination' : 'Register vaccination';
+                    vaccModal.show();
+                </text>
+            }
+        </script>
+    }
 }

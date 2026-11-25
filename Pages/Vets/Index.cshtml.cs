@@ -184,7 +184,7 @@ namespace Livestock_Health_App.Pages.Vets
                 SELECT DISTINCT c.district
                 FROM Clinics c
                 JOIN Users u ON u.clinic_ID = c.clinic_ID
-                WHERE u.role = 'Veterinarian'
+                WHERE u.role = 'Veterinarian' AND u.is_verified = 1
                 ORDER BY c.district";
             using var cmd = new SqlCommand(sql, conn);
             using var r = cmd.ExecuteReader();
@@ -197,7 +197,7 @@ namespace Livestock_Health_App.Pages.Vets
                 SELECT DISTINCT c.sector
                 FROM Clinics c
                 JOIN Users u ON u.clinic_ID = c.clinic_ID
-                WHERE u.role = 'Veterinarian' AND c.district = @District
+                WHERE u.role = 'Veterinarian' AND u.is_verified = 1 AND c.district = @District
                 ORDER BY c.sector";
             using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@District", District!);
@@ -207,13 +207,12 @@ namespace Livestock_Health_App.Pages.Vets
 
         private void LoadVets(SqlConnection conn)
         {
-            // When vet verification (FR12) is added, also require: AND u.is_verified = 1
             const string sql = @"
                 SELECT u.user_ID, u.full_name, u.email, u.phone,
                        c.clinic_name, c.district, c.sector, c.cell, c.village
                 FROM Users u
                 JOIN Clinics c ON c.clinic_ID = u.clinic_ID
-                WHERE u.role = 'Veterinarian'
+                WHERE u.role = 'Veterinarian' AND u.is_verified = 1
                   AND (@District = '' OR c.district = @District)
                   AND (@Sector = '' OR c.sector = @Sector)
                 ORDER BY c.district, c.sector, u.full_name";

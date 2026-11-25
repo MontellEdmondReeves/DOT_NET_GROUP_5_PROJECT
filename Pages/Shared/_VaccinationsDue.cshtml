@@ -3,6 +3,7 @@
 <div class="card h-100">
     <div class="card-header d-flex justify-content-between">
         <strong>Vaccinations due (next 14 days)</strong>
+        <a asp-page="/Vaccinations/Index" class="small">View all</a>
     </div>
     @if (Model.Count == 0)
     {
