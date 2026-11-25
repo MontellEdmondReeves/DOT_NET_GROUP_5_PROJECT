@@ -88,8 +88,10 @@ namespace Livestock_Health_App.Pages.Admin
                 cmd.Parameters.AddWithValue("@Id", id);
                 
                 int rows = cmd.ExecuteNonQuery();
-                TempData[rows == 0 ? "ErrorMessage" : "SuccessMessage"] =
-                    rows == 0 ? "Veterinarian not found." : okMessage;
+                if (rows == 0)
+                    TempData["ErrorMessage"] = "Veterinarian not found.";
+                else
+                    TempData["SuccessMessage"] = okMessage;
             }
             catch (Exception ex)
             {
@@ -194,8 +196,11 @@ namespace Livestock_Health_App.Pages.Admin
 
                 using var cmd = new SqlCommand("DELETE FROM Users WHERE user_ID = @Id", conn);
                 cmd.Parameters.AddWithValue("@Id", id);
-                TempData[cmd.ExecuteNonQuery() == 0 ? "ErrorMessage" : "SuccessMessage"] =
-                    "User deleted.";
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                    TempData["ErrorMessage"] = "User not found.";
+                else
+                    TempData["SuccessMessage"] = "User deleted.";
             }
             catch (Exception ex)
             {
