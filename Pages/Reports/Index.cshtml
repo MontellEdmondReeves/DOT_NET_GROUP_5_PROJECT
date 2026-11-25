@@ -1,4 +1,264 @@
 ﻿@page
+@using Livestock_Health_App.Pages.Reports
 @model Livestock_Health_App.Pages.Reports.IndexModel
 @{
+    ViewData["Title"] = "Reports";
+
+    string D(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+    var today = DateTime.Today;
+
+    string CaseBadge(string? s) => s switch
+    {
+        "Resolved" => "bg-success",
+        "Under Treatment" => "bg-warning text-dark",
+        "Open" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    void StatCard(string label, int value, string color)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center border-@color h-100">
+                <div class="card-body">
+                    <div class="display-6 text-@color">@value</div>
+                    <div class="text-muted small">@label</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    void BreakdownCard(string title, List<BreakdownItem> items, string color)
+    {
+        var max = items.Count == 0 ? 1 : items.Max(i => i.Count);
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>@title</strong></div>
+                <div class="card-body">
+                    @if (items.Count == 0)
+                    {
+                        <div class="text-muted">No data for these filters.</div>
+                    }
+                    @foreach (var i in items)
+                    {
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>@i.Label</span><strong>@i.Count</strong>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-@color" role="progressbar"
+                                     style="width: @(i.Count * 100 / max)%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<div class="d-flex justify-content-between align-items-center mb-1">
+    <h2 class="mb-0">Reports</h2>
+    <div class="d-print-none">
+        <a asp-page-handler="Export"
+           asp-route-From="@D(Model.From)" asp-route-To="@D(Model.To)"
+           asp-route-Species="@Model.Species" asp-route-District="@Model.District"
+           asp-route-Diagnosis="@Model.Diagnosis" asp-route-Status="@Model.Status"
+           class="btn btn-outline-success me-2">Export cases (CSV)</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.print()">Print</button>
+    </div>
+</div>
+<p class="text-muted">
+    @if (Model.IsAdmin)
+    {
+        <span>System-wide report: all veterinarians.</span>
+    }
+    else
+    {
+
+        <span>Showing your own cases and the animals you have treated.</span>
+    }
+    Generated @DateTime.Now.ToString("dd MMM yyyy HH:mm").
+</p>
+
+@if (TempData["ErrorMessage"] is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+@* ---------- Filters ---------- *@
+<div class="card mb-3 d-print-none">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">From</label>
+                <input type="date" name="From" value="@D(Model.From)" class="form-control" />
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">To</label>
+                <input type="date" name="To" value="@D(Model.To)" class="form-control" />
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">Species</label>
+                <select name="Species" class="form-select">
+                    <option value="">All species</option>
+                    @foreach (var s in IndexModel.SpeciesList)
+                    {
+                        <option value="@s" selected="@(s == Model.Species)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">District</label>
+                <select name="District" class="form-select">
+                    <option value="">All districts</option>
+                    @foreach (var d in Model.DistrictOptions)
+                    {
+                        <option value="@d" selected="@(d == Model.District)">@d</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">Diagnosis contains</label>
+                <input name="Diagnosis" value="@Model.Diagnosis" class="form-control" placeholder="e.g. mastitis" />
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">Case status</label>
+                <select name="Status" class="form-select">
+                    <option value="">All statuses</option>
+                    @foreach (var s in IndexModel.CaseStatuses)
+                    {
+                        <option value="@s" selected="@(s == Model.Status)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 d-flex align-items-center flex-wrap gap-2 mt-2">
+                <button type="submit" class="btn btn-primary">Generate report</button>
+                <a asp-page="Index" class="btn btn-link">Clear</a>
+                <span class="text-muted small ms-3">Quick period:</span>
+                @{
+                    var keep = new { Model.Species, Model.District, Model.Diagnosis, Model.Status };
+                }
+                <a class="btn btn-sm btn-outline-secondary" asp-page="Index"
+                   asp-route-From="@D(today.AddDays(-30))" asp-route-To="@D(today)"
+                   asp-route-Species="@keep.Species" asp-route-District="@keep.District"
+                   asp-route-Diagnosis="@keep.Diagnosis" asp-route-Status="@keep.Status">Last 30 days</a>
+                <a class="btn btn-sm btn-outline-secondary" asp-page="Index"
+                   asp-route-From="@D(today.AddDays(-90))" asp-route-To="@D(today)"
+                   asp-route-Species="@keep.Species" asp-route-District="@keep.District"
+                   asp-route-Diagnosis="@keep.Diagnosis" asp-route-Status="@keep.Status">Last 90 days</a>
+                <a class="btn btn-sm btn-outline-secondary" asp-page="Index"
+                   asp-route-From="@D(new DateTime(today.Year, 1, 1))" asp-route-To="@D(today)"
+                   asp-route-Species="@keep.Species" asp-route-District="@keep.District"
+                   asp-route-Diagnosis="@keep.Diagnosis" asp-route-Status="@keep.Status">This year</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---------- Health summary ---------- *@
+<h5 class="mt-4">Health cases</h5>
+<div class="row g-3 mb-4">
+    @{
+        StatCard("Cases recorded", Model.TotalCases, "primary");
+    }
+    @{
+        StatCard("Animals affected", Model.AnimalsAffected, "info");
+    }
+    @{
+        StatCard("Open", Model.OpenCases, "danger");
+    }
+    @{
+        StatCard("Under treatment", Model.UnderTreatment, "warning");
+    }
+</div>
+<div class="row g-3 mb-4">
+    @{
+        StatCard("Resolved", Model.ResolvedCases, "success");
+    }
+    @{
+        StatCard("Vaccinations given", Model.VaccinationsGiven, "primary");
+    }
+    @{
+        StatCard("Animals vaccinated", Model.AnimalsVaccinated, "info");
+    }
+    @{
+        StatCard("Overdue vaccinations", Model.OverdueVaccinations, "danger");
+    }
+</div>
+
+@* ---------- Breakdowns ---------- *@
+<div class="row g-3 mb-4">
+    @{
+        BreakdownCard("Cases by species", Model.BySpecies, "primary");
+    }
+    @{
+        BreakdownCard("Top diagnoses", Model.ByDiagnosis, "danger");
+    }
+    @{
+        BreakdownCard("Cases by district", Model.ByDistrict, "info");
+    }
+    @{
+        BreakdownCard("Cases by status", Model.ByStatus, "warning");
+    }
+    @if (Model.IsAdmin)
+    {
+        BreakdownCard("Cases per veterinarian", Model.ByVet, "secondary");
+    }
+    @{
+        BreakdownCard("Vaccinations by vaccine", Model.ByVaccine, "success");
+    }
+    @{
+        BreakdownCard($"Appointments by status ({Model.TotalAppointments} total)", Model.ByAppointmentStatus, "dark");
+    }
+</div>
+<p class="small text-muted">
+    The diagnosis and case status filters apply to health cases only. Vaccination and appointment figures
+    use the period, species and district filters.
+</p>
+
+@* ---------- Case list ---------- *@
+<h5 class="mt-4">Case list</h5>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Animal</th>
+                    <th>District</th>
+                    <th>Diagnosis</th>
+                    <th>Treatment</th>
+                    <th>Status</th>
+                    <th>Veterinarian</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Cases.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">No cases match these filters.</td></tr>
+                }
+                @foreach (var c in Model.Cases)
+                {
+                    <tr>
+                        <td class="text-nowrap">@c.Date.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <a asp-page="/Animals/Details" asp-route-id="@c.AnimalId"><strong>@c.TagNumber</strong></a>
+                            <div class="small text-muted">@c.Species</div>
+                        </td>
+                        <td>@c.District</td>
+                        <td>@(c.Diagnosis ?? "—")</td>
+                        <td>@(c.Treatment ?? "—")</td>
+                        <td><span class="badge @CaseBadge(c.CaseStatus)">@(c.CaseStatus ?? "—")</span></td>
+                        <td>@(c.VetName ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@if (Model.CasesTruncated)
+{
+    <p class="small text-muted mt-2">
+        Showing the 200 most recent cases. Use "Export cases (CSV)" to get every case that matches the filters.
+    </p>
 }
